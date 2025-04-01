@@ -1,5 +1,4 @@
-using Azure.AI.Vision.ImageAnalysis;
-using Azure.Core;
+
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.Functions.Worker;
@@ -20,9 +19,9 @@ namespace TheWag.Functions
         }
 
         [Function("GetAnalysis")]
-        public IActionResult Run([HttpTrigger(AuthorizationLevel.Function, "post")] HttpRequest req)
+        public IActionResult Run([HttpTrigger(AuthorizationLevel.Anonymous, "post")] HttpRequest req)
         {
-            _logger.LogInformation("C# HTTP trigger function processed a request.");
+            _logger.LogInformation("GetAnalysis called");
 
             var file = req.Form.Files[0];
 

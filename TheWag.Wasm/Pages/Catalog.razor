@@ -1,6 +1,7 @@
 ﻿@using TheWag.Models;
 @using TheWag.Wasm.Util;
 @inject SessionStorage SessionStorageAccessor
+@inject IConfiguration configuration
 
 @inject HttpClient Http
 
@@ -13,7 +14,8 @@
 
 @if (_vmProducts == null)
 {
-    <p><em>Loading...</em></p>
+    <img src="images/TailLoader.gif" style="max-height:4em; max-width:4em" />
+    <em>Loading...</em>
 }
 else
 {
@@ -46,15 +48,15 @@ else
 }
 
 @code {
-    private IList<vmProduct>? _vmProducts = new List<vmProduct>();
+    private IList<vmProduct>? _vmProducts = null;
     private readonly string _blobContainer = "dogpictures";
-	private readonly string _cartSessionKey = "cart";
-    private readonly string _functionHost = "http://localhost:7114";
-    private readonly string _blobHost = "https://thewagstorage.blob.core.windows.net";
+    private readonly string _cartSessionKey = "cart";
+    //private readonly string _functionHost = "http://localhost:7114";
+    //private readonly string _blobHost = "https://thewagstorage.blob.core.windows.net";
 
     protected override async Task OnInitializedAsync()
     {
-        
+
         //see if a cart exists in session
         var cart = await SessionStorageAccessor.GetValueAsync<TheWag.Models.Cart>(_cartSessionKey);
         if (cart == null)
@@ -70,7 +72,10 @@ else
         await SessionStorageAccessor.SetValueAsync<TheWag.Models.Cart>(_cartSessionKey, cart);
 
         //get all products
-        var products = await Http.GetFromJsonAsync<ProductDTO[]>($"{_functionHost}/api/GetAllProducts");
+		var host = configuration["FunctionHostUrl"];
+        var products = await Http.GetFromJsonAsync<ProductDTO[]>($"{host}/api/GetAllProducts");
+        
+        _vmProducts = new List<vmProduct>();
 
         foreach (var product in products)
         {
@@ -83,7 +88,7 @@ else
                     {
                         //check to see if the pic exits
                         Product = product,
-                        URL = $"{_blobHost}/{_blobContainer}/{product.URL}",
+                        URL = $"{configuration["BlobHostUrl"]}/{_blobContainer}/{product.URL}",
                         Quantity = qty,
                         addBtnText = qty > 0 ? "Add another" : "Add to cart",
                         hideBadge = qty > 0 ? "" : "visually-hidden"

@@ -1,0 +1,5 @@
+﻿@TheWag.Functions_HostAddress = http://localhost:7114
+
+GET {{TheWag.Functions_HostAddress}}/api/GetAllProducts
+
+###

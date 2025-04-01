@@ -2,55 +2,47 @@
 @using Microsoft.AspNetCore.Components.Routing
 @using System.Net;
 @using TheWag.Models;
+@inject IConfiguration configuration
 
 @inject HttpClient Http
 
-
-@* @using Util.Azure.ComputerVision;
-@using Azure.Storage.Blobs;
-
-
-
-@inject BlobServiceClient blobClient;
-@inject WagDBApiClient WagDBApi *@
-
 @page "/sell"
 
-<h3>Sell you dog pictures!</h3>
 
 
-@if (sellStage == SellStage.rdyToUpload)
+@if (_sellStage == SellStage.rdyToUpload)
 {
+	<h3>Sell you dog pictures!</h3>
 	<div>
 		<InputFile OnChange="OnInputFileChange" single />
 	</div>
 }
 
-@if (sellStage == SellStage.rdyToSell)
+@if (_sellStage == SellStage.rdyToSell)
 {
-	<div>
-		<img src="@vmPic.URL" />
+	<div style="margin-bottom: 3rem">
 		<h3>Upload complete, this is a picture of a dog!</h3>
-		<p>Description: @vmPic.Description</p>
-		<p>Tags: @string.Join(",", vmPic.Tags.Select(x => x))</p>
+		<img src="@vmPic.URL" />
+		<p><b>Description:</b> @vmPic.Description</p>
+		<p><b>Tags:</b> @string.Join(",", vmPic.Tags.Select(x => x))</p>
 	</div>
 
 	<EditForm Model="sellModel" OnSubmit="SaveToDB" FormName="SellDogPic">
-		<h3>Let's sell this puppy!</h3>
-		<p>How much is this cutness worth: <input @bind-value="sellModel!.Price" /></p>
+		<h3>Now let's sell this puppy!</h3>
+		<p>How much is this puppy worth: <input @bind-value="sellModel!.Price" /></p>
 		<p>How many of these puppies do you have to sell:<input @bind-value="sellModel!.Stock" /></p>
-		<button type="submit">Sell</button>
+		<button type="submit" class="btn btn-primary"> $ Sell $ </button>
 	</EditForm>
 }
 
-@if (sellStage == SellStage.addedToCatalog)
+@if (_sellStage == SellStage.addedToCatalog)
 {
 	<div>
 		<h3>Added to <NavLink href="catalog">catalog!</NavLink></h3>
 	</div>
 }
 
-@if (sellStage == SellStage.notADog)
+@if (_sellStage == SellStage.notADog)
 {
 	<div>
 		<h3>Sorry, we only sell dog pictures.</h3>
@@ -59,26 +51,34 @@
 	</div>
 }
 
+@if (_loading)
+{
+	<img src="images/TailLoader.gif" style="max-height:4em; max-width:4em" />
+	<em>Loading...</em>
+}
+
 @code {
 
 	[SupplyParameterFromForm]
 	private SellModel sellModel { get; set; }
+	
 	private vmSellUploadPic vmPic;
-	private readonly string funHost = "http://localhost:7114";
+	private bool _loading = false;
+	//private readonly string funHost = configuration["FunctionHostUrl"];
 	private enum SellStage {rdyToUpload, rdyToSell, addedToCatalog, notADog,};
-	private SellStage sellStage = SellStage.rdyToUpload;
+	private SellStage _sellStage = SellStage.rdyToUpload;
 	private static readonly HashSet<string> _imageExtension = new HashSet<string>([".jpg", ".jpeg", ".png", ".gif", ".webp"], StringComparer.OrdinalIgnoreCase);
 
 	protected override void OnInitialized()
 	{
-
-		//var r = await WagDBApi.GetProductsAsync(null);
 		sellModel ??= new SellModel();
-
 	}
 
 	private async void OnInputFileChange(InputFileChangeEventArgs e)
 	{
+		_loading = true;
+		StateHasChanged();
+
 		//TODO: maybe move this out of the view
 		var file = e.File;
 		
@@ -100,7 +100,7 @@
 				{
 					var content = new MultipartFormDataContent();
 					content.Add(new StreamContent(ms, Convert.ToInt32(resizedFile.Size)), "image", tempVm.FileName);
-					var analysisResponse = await Http.PostAsync($"{funHost}/api/GetAnalysis", content);
+					var analysisResponse = await Http.PostAsync($"{configuration["FunctionHostUrl"]}/api/GetAnalysis", content);
 
 					var imageAnalysis = await analysisResponse.Content.ReadFromJsonAsync<ImageAnalysisResults>();
 					tempVm.Description = imageAnalysis.Description;
@@ -109,7 +109,7 @@
 
 					//save the pic if it's a dog
 					if (tempVm.IsDog){
-						var saveResponse = await Http.PostAsync($"{funHost}/api/SaveDogPic", content);
+						var saveResponse = await Http.PostAsync($"{configuration["FunctionHostUrl"]}/api/SaveDogPic", content);
 						tempVm.URL = await saveResponse.Content.ReadAsStringAsync();
 					}
 
@@ -122,7 +122,8 @@
 			}
 
 			vmPic = tempVm;
-			sellStage = vmPic.IsDog ? SellStage.rdyToSell : SellStage.notADog;
+			_sellStage = vmPic.IsDog ? SellStage.rdyToSell : SellStage.notADog;
+			_loading = false;
 			StateHasChanged();
 
 		}
@@ -130,6 +131,9 @@
 
 	private async void SaveToDB()
 	{
+		_loading = true;
+		StateHasChanged();
+
 		var tags = vmPic.Tags.Select(x => new TagDTO() { Text = x }).ToList();
 
 		var product = new ProductDTO()
@@ -142,9 +146,10 @@
 				Vendor = null
 			};
 
-		var response = await Http.PostAsJsonAsync<ProductDTO>($"{funHost}/api/CreateProduct", product);
+		var response = await Http.PostAsJsonAsync<ProductDTO>($"{configuration["FunctionHostUrl"]}/api/CreateProduct", product);
 
-		sellStage = SellStage.addedToCatalog;
+		_sellStage = SellStage.addedToCatalog;
+		_loading = false;
 		StateHasChanged();
 	}
 
@@ -156,14 +161,6 @@
 		internal string URL { get; set; } = "";
 		internal string FileName { get; set; } = "";
 	}
-
-	// private class vmSellUploadDB
-	// {
-	// 	private decimal Price { get; set; } = 9.99m;
-	// 	private int Stock { get; set; } = 10;
-	// 	private string? VendorEmail { get; set; } = "Vendor Email";
-	// 	private string? VendorName { get; set; } = "Vendor Name";
-	// }
 
 	internal class SellModel
 	{

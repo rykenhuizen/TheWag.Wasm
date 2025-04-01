@@ -18,7 +18,7 @@ namespace TheWag.Functions
         }
 
         [Function("SaveDogPic")]
-        public IActionResult Save([HttpTrigger(AuthorizationLevel.Function, "post")] HttpRequest req)
+        public IActionResult Save([HttpTrigger(AuthorizationLevel.Anonymous, "post")] HttpRequest req)
         {
             var file = req.Form.Files[0];
             Stream myBlob = new MemoryStream();
