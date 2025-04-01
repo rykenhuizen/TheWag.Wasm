@@ -1,0 +1,177 @@
+﻿@using Microsoft.AspNetCore.Components.Forms
+@using Microsoft.AspNetCore.Components.Routing
+@using System.Net;
+@using TheWag.Models;
+
+@inject HttpClient Http
+
+
+@* @using Util.Azure.ComputerVision;
+@using Azure.Storage.Blobs;
+
+
+
+@inject BlobServiceClient blobClient;
+@inject WagDBApiClient WagDBApi *@
+
+@page "/sell"
+
+<h3>Sell you dog pictures!</h3>
+
+
+@if (sellStage == SellStage.rdyToUpload)
+{
+	<div>
+		<InputFile OnChange="OnInputFileChange" single />
+	</div>
+}
+
+@if (sellStage == SellStage.rdyToSell)
+{
+	<div>
+		<img src="@vmPic.URL" />
+		<h3>Upload complete, this is a picture of a dog!</h3>
+		<p>Description: @vmPic.Description</p>
+		<p>Tags: @string.Join(",", vmPic.Tags.Select(x => x))</p>
+	</div>
+
+	<EditForm Model="sellModel" OnSubmit="SaveToDB" FormName="SellDogPic">
+		<h3>Let's sell this puppy!</h3>
+		<p>How much is this cutness worth: <input @bind-value="sellModel!.Price" /></p>
+		<p>How many of these puppies do you have to sell:<input @bind-value="sellModel!.Stock" /></p>
+		<button type="submit">Sell</button>
+	</EditForm>
+}
+
+@if (sellStage == SellStage.addedToCatalog)
+{
+	<div>
+		<h3>Added to <NavLink href="catalog">catalog!</NavLink></h3>
+	</div>
+}
+
+@if (sellStage == SellStage.notADog)
+{
+	<div>
+		<h3>Sorry, we only sell dog pictures.</h3>
+		<p>Description: @vmPic.Description</p>
+		<img src="@vmPic.URL" />
+	</div>
+}
+
+@code {
+
+	[SupplyParameterFromForm]
+	private SellModel sellModel { get; set; }
+	private vmSellUploadPic vmPic;
+	private readonly string funHost = "http://localhost:7114";
+	private enum SellStage {rdyToUpload, rdyToSell, addedToCatalog, notADog,};
+	private SellStage sellStage = SellStage.rdyToUpload;
+	private static readonly HashSet<string> _imageExtension = new HashSet<string>([".jpg", ".jpeg", ".png", ".gif", ".webp"], StringComparer.OrdinalIgnoreCase);
+
+	protected override void OnInitialized()
+	{
+
+		//var r = await WagDBApi.GetProductsAsync(null);
+		sellModel ??= new SellModel();
+
+	}
+
+	private async void OnInputFileChange(InputFileChangeEventArgs e)
+	{
+		//TODO: maybe move this out of the view
+		var file = e.File;
+		
+		if (file != null)
+		{
+
+			//TODO: I think there is a better solution than this tempVm
+			var tempVm = new vmSellUploadPic();
+			tempVm.FileName = Guid.NewGuid().ToString() + file.Name;
+
+
+			//TODO: check for duplicate pic
+
+			//get image analysis from computer vision service
+			try
+			{
+				var resizedFile = await file.RequestImageFileAsync("image/png", 300, 500);
+				using (var ms = resizedFile.OpenReadStream(resizedFile.Size))
+				{
+					var content = new MultipartFormDataContent();
+					content.Add(new StreamContent(ms, Convert.ToInt32(resizedFile.Size)), "image", tempVm.FileName);
+					var analysisResponse = await Http.PostAsync($"{funHost}/api/GetAnalysis", content);
+
+					var imageAnalysis = await analysisResponse.Content.ReadFromJsonAsync<ImageAnalysisResults>();
+					tempVm.Description = imageAnalysis.Description;
+					tempVm.Tags = imageAnalysis.Tags;
+					tempVm.IsDog = imageAnalysis.Tags.Contains("dog");
+
+					//save the pic if it's a dog
+					if (tempVm.IsDog){
+						var saveResponse = await Http.PostAsync($"{funHost}/api/SaveDogPic", content);
+						tempVm.URL = await saveResponse.Content.ReadAsStringAsync();
+					}
+
+				}				
+			}
+			catch (Exception ex)
+			{
+				Console.WriteLine(ex.ToString());
+				tempVm.Description = "Error analyzing image" + ex.ToString();
+			}
+
+			vmPic = tempVm;
+			sellStage = vmPic.IsDog ? SellStage.rdyToSell : SellStage.notADog;
+			StateHasChanged();
+
+		}
+	}
+
+	private async void SaveToDB()
+	{
+		var tags = vmPic.Tags.Select(x => new TagDTO() { Text = x }).ToList();
+
+		var product = new ProductDTO()
+			{
+				Description = vmPic.Description,
+				Price = sellModel.Price,
+				Stock = sellModel.Stock,
+				URL = vmPic.FileName,
+				Tags = tags,
+				Vendor = null
+			};
+
+		var response = await Http.PostAsJsonAsync<ProductDTO>($"{funHost}/api/CreateProduct", product);
+
+		sellStage = SellStage.addedToCatalog;
+		StateHasChanged();
+	}
+
+	internal class vmSellUploadPic
+	{
+		internal string Description { get; set; } = "No image uploaded";
+		internal IList<string> Tags { get; set; } = new List<string>();
+		internal bool IsDog { get; set; } = false;
+		internal string URL { get; set; } = "";
+		internal string FileName { get; set; } = "";
+	}
+
+	// private class vmSellUploadDB
+	// {
+	// 	private decimal Price { get; set; } = 9.99m;
+	// 	private int Stock { get; set; } = 10;
+	// 	private string? VendorEmail { get; set; } = "Vendor Email";
+	// 	private string? VendorName { get; set; } = "Vendor Name";
+	// }
+
+	internal class SellModel
+	{
+		internal decimal Price { get; set; } = 9.99m;
+		internal int Stock { get; set; } = 10;
+		internal string? VendorEmail { get; set; } = "Vendor Email";
+		internal string? VendorName { get; set; } = "Vendor Name";
+	}
+	
+
+}

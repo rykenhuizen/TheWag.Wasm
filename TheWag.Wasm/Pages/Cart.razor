@@ -1,0 +1,128 @@
+﻿
+@using Microsoft.AspNetCore.Components.Web
+@using TheWag.Models;
+@using TheWag.Wasm.Util;
+
+@inject SessionStorage SessionStorageAccessor
+
+
+
+@page "/cart"
+
+
+<PageTitle>Sopping cart</PageTitle>
+
+<h3>Shopping Cart</h3>
+<div class="container-fluid">
+
+    @if (_cart == null)
+    {
+        <p><em>Loading...</em></p>
+    }
+    else
+    {
+        <p>Order for @_cart?.Customer.Email</p>
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Description</th>
+                    <th>Qty</th>
+                    <th>Price</th>
+                    <th>Sub Total</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var item in _cart.Items)
+                {
+                    <tr>
+                        <td>
+                            <img src="@(_blobUrl + item.Product.URL)" class="card-img-top force-fit-thumbnail" alt="@item.Product.Description">
+                            <span style="display:inline-block">@item.Product.Description</span>
+                        </td>
+                        <td>
+                            <img src="images/delete.png" class="icon" @onclick="(() => RemoveItem(item.Product.Id))" /> 
+                            @item.Quantity
+                            <img src="images/plus.png" class="icon" @onclick="(() => AddItem(item.Product.Id))" />
+                        </td>
+                        <td>@item.Product.PriceCurrency</td>
+                        <td>@GetSubTotal(item.Quantity, item.Product.Price)</td>
+                    </tr>
+                }
+                <tr>
+                    <td>Total</td>
+                    <td></td>
+                    <td></td>
+                    <td>@string.Format("{0:C}", _total)</td>
+                </tr>
+            </tbody>
+        </table>
+    }
+</div>
+@code {
+    private TheWag.Models.Cart _cart = GetEmptyCart();
+    private decimal _total = 0;
+    private readonly string _cartSessionKey = "cart";
+    private readonly string _blobUrl = "https://thewagstorage.blob.core.windows.net/dogpictures/";
+
+    protected override async Task OnInitializedAsync()
+    {
+
+        _cart = new TheWag.Models.Cart()
+                  {
+                      Customer = new Customer() { Email = "email" },
+                      Items = new List<CartItem>() {}
+                  };
+        //see if a cart exists in session
+        _cart = await SessionStorageAccessor.GetValueAsync<TheWag.Models.Cart>(_cartSessionKey);
+        //_cart = result.Success ? result.Value : GetEmptyCart();
+        UpdateTotal();
+
+    }
+
+    private string GetSubTotal(int qty, decimal price)
+    {
+        var subtotal = qty * price;
+        return string.Format("{0:C}", subtotal);
+    }
+
+    private void UpdateTotal()
+    {
+        _total = 0;
+        foreach(var item in _cart.Items){
+            _total += item.Quantity * item.Product.Price;
+        }
+       
+    }
+
+    private async Task AddItem(int? id){
+        var item = _cart.Items.FirstOrDefault(x => x.Product.Id == id).Quantity++;
+
+        await SessionStorageAccessor.SetValueAsync<TheWag.Models.Cart>(_cartSessionKey, _cart);
+        UpdateTotal();
+    }
+
+    private async Task RemoveItem(int? id)
+    {
+        var item = _cart.Items.FirstOrDefault(x => x.Product.Id == id);
+        if (item.Quantity <= 1)
+        {
+            _cart.Items.Remove(item);
+        }
+        else
+        {
+            item.Quantity--;
+        }
+        await SessionStorageAccessor.SetValueAsync<TheWag.Models.Cart>(_cartSessionKey, _cart);
+        UpdateTotal();
+    }
+
+    private static TheWag.Models.Cart GetEmptyCart()
+	{
+        return new TheWag.Models.Cart()
+			{
+				Customer = new Customer() { Email = "email" },
+				Items = new List<CartItem>() { }
+			};
+	}
+	
+}
