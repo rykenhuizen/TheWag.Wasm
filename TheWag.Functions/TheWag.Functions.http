@@ -3,3 +3,9 @@
 GET {{TheWag.Functions_HostAddress}}/api/GetAllProducts
 
 ###
+
+POST {{TheWag.Functions_HostAddress}}/api/GetAnalysis
+{
+
+}
+###
