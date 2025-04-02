@@ -1,9 +1,9 @@
 ﻿@using TheWag.Models;
 @using TheWag.Wasm.Util;
 @inject SessionStorage SessionStorageAccessor
-@inject IConfiguration configuration
 
 @inject HttpClient Http
+@inject AppSettings appSettings
 
 @page "/catalog"
 
@@ -49,16 +49,12 @@ else
 
 @code {
     private IList<vmProduct>? _vmProducts = null;
-    private readonly string _blobContainer = "dogpictures";
-    private readonly string _cartSessionKey = "cart";
-    //private readonly string _functionHost = "http://localhost:7114";
-    //private readonly string _blobHost = "https://thewagstorage.blob.core.windows.net";
 
     protected override async Task OnInitializedAsync()
     {
 
         //see if a cart exists in session
-        var cart = await SessionStorageAccessor.GetValueAsync<TheWag.Models.Cart>(_cartSessionKey);
+        var cart = await SessionStorageAccessor.GetValueAsync<TheWag.Models.Cart>(appSettings.CartSessionKey);
         if (cart == null)
         {
             //no cart found, create one
@@ -69,11 +65,10 @@ else
             };
         }
         //persist the cart to session
-        await SessionStorageAccessor.SetValueAsync<TheWag.Models.Cart>(_cartSessionKey, cart);
+        await SessionStorageAccessor.SetValueAsync<TheWag.Models.Cart>(appSettings.CartSessionKey, cart);
 
         //get all products
-		var host = configuration["FunctionHostUrl"];
-        var products = await Http.GetFromJsonAsync<ProductDTO[]>($"{host}/api/GetAllProducts");
+        var products = await Http.GetFromJsonAsync<ProductDTO[]>($"{appSettings.FunctionHostUrl}/api/GetAllProducts");
         
         _vmProducts = new List<vmProduct>();
 
@@ -88,7 +83,7 @@ else
                     {
                         //check to see if the pic exits
                         Product = product,
-                        URL = $"{configuration["BlobHostUrl"]}/{_blobContainer}/{product.URL}",
+                    URL = $"{appSettings.BlobHostUrl}/{appSettings.ContainerName}/{product.URL}",
                         Quantity = qty,
                         addBtnText = qty > 0 ? "Add another" : "Add to cart",
                         hideBadge = qty > 0 ? "" : "visually-hidden"
@@ -111,7 +106,7 @@ else
 
 
         //update the cart
-        var cart = await SessionStorageAccessor.GetValueAsync<TheWag.Models.Cart>(_cartSessionKey);
+        var cart = await SessionStorageAccessor.GetValueAsync<TheWag.Models.Cart>(appSettings.CartSessionKey);
         var cartItem = cart?.Items.FirstOrDefault(x => x.Product.Id == id);
         if(cartItem == null){
             cart.Items.Add(new CartItem
@@ -124,7 +119,7 @@ else
             cartItem.Quantity++;
         }
 
-        await SessionStorageAccessor.SetValueAsync<TheWag.Models.Cart>(_cartSessionKey, cart);
+        await SessionStorageAccessor.SetValueAsync<TheWag.Models.Cart>(appSettings.CartSessionKey, cart);
     }
 
     public class vmProduct

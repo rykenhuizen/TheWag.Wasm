@@ -2,9 +2,10 @@
 @using Microsoft.AspNetCore.Components.Routing
 @using System.Net;
 @using TheWag.Models;
-@inject IConfiguration configuration
+@using TheWag.Wasm.Util;
 
 @inject HttpClient Http
+@inject AppSettings appSettings
 
 @page "/sell"
 
@@ -100,7 +101,7 @@
 				{
 					var content = new MultipartFormDataContent();
 					content.Add(new StreamContent(ms, Convert.ToInt32(resizedFile.Size)), "image", tempVm.FileName);
-					var analysisResponse = await Http.PostAsync($"{configuration["FunctionHostUrl"]}/api/GetAnalysis", content);
+					var analysisResponse = await Http.PostAsync($"{appSettings.FunctionHostUrl}/api/GetAnalysis", content);
 
 					var imageAnalysis = await analysisResponse.Content.ReadFromJsonAsync<ImageAnalysisResults>();
 					tempVm.Description = imageAnalysis.Description;
@@ -109,7 +110,7 @@
 
 					//save the pic if it's a dog
 					if (tempVm.IsDog){
-						var saveResponse = await Http.PostAsync($"{configuration["FunctionHostUrl"]}/api/SaveDogPic", content);
+						var saveResponse = await Http.PostAsync($"{appSettings.FunctionHostUrl}/api/SaveDogPic", content);
 						tempVm.URL = await saveResponse.Content.ReadAsStringAsync();
 					}
 
@@ -146,7 +147,7 @@
 				Vendor = null
 			};
 
-		var response = await Http.PostAsJsonAsync<ProductDTO>($"{configuration["FunctionHostUrl"]}/api/CreateProduct", product);
+		var response = await Http.PostAsJsonAsync<ProductDTO>($"{appSettings.FunctionHostUrl}/api/CreateProduct", product);
 
 		_sellStage = SellStage.addedToCatalog;
 		_loading = false;

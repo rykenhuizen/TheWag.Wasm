@@ -4,11 +4,9 @@
 @using TheWag.Wasm.Util;
 
 @inject SessionStorage SessionStorageAccessor
-
-
+@inject AppSettings appSettings
 
 @page "/cart"
-
 
 <PageTitle>Sopping cart</PageTitle>
 
@@ -17,7 +15,8 @@
 
     @if (_cart == null)
     {
-        <p><em>Loading...</em></p>
+        <img src="images/TailLoader.gif" style="max-height:4em; max-width:4em" />
+        <em>Loading...</em>
     }
     else
     {
@@ -36,7 +35,7 @@
                 {
                     <tr>
                         <td>
-                            <img src="@(_blobUrl + item.Product.URL)" class="card-img-top force-fit-thumbnail" alt="@item.Product.Description">
+                            <img src="@($"{appSettings.BlobHostUrl}/{appSettings.ContainerName}/{item.Product.URL}")" class="card-img-top force-fit-thumbnail" alt="@item.Product.Description">
                             <span style="display:inline-block">@item.Product.Description</span>
                         </td>
                         <td>
@@ -61,8 +60,6 @@
 @code {
     private TheWag.Models.Cart _cart = GetEmptyCart();
     private decimal _total = 0;
-    private readonly string _cartSessionKey = "cart";
-    private readonly string _blobUrl = "https://thewagstorage.blob.core.windows.net/dogpictures/";
 
     protected override async Task OnInitializedAsync()
     {
@@ -73,8 +70,8 @@
                       Items = new List<CartItem>() {}
                   };
         //see if a cart exists in session
-        _cart = await SessionStorageAccessor.GetValueAsync<TheWag.Models.Cart>(_cartSessionKey);
-        //_cart = result.Success ? result.Value : GetEmptyCart();
+        _cart = await SessionStorageAccessor.GetValueAsync<TheWag.Models.Cart>(appSettings.CartSessionKey);
+
         UpdateTotal();
 
     }
@@ -97,7 +94,7 @@
     private async Task AddItem(int? id){
         var item = _cart.Items.FirstOrDefault(x => x.Product.Id == id).Quantity++;
 
-        await SessionStorageAccessor.SetValueAsync<TheWag.Models.Cart>(_cartSessionKey, _cart);
+        await SessionStorageAccessor.SetValueAsync<TheWag.Models.Cart>(appSettings.CartSessionKey, _cart);
         UpdateTotal();
     }
 
@@ -112,7 +109,7 @@
         {
             item.Quantity--;
         }
-        await SessionStorageAccessor.SetValueAsync<TheWag.Models.Cart>(_cartSessionKey, _cart);
+        await SessionStorageAccessor.SetValueAsync<TheWag.Models.Cart>(appSettings.CartSessionKey, _cart);
         UpdateTotal();
     }
 
