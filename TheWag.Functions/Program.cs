@@ -11,6 +11,8 @@ builder.ConfigureFunctionsWebApplication();
 builder.Services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
 builder.Services.AddSingleton<ComputerVisionClient>(serviceProvider => new ComputerVisionClient());
 
+builder.Services.AddSingleton<ComputerVisionClient>(serviceProvider => new ComputerVisionClient());
+
 builder.Services.AddDbContext<WagDbContext>(options =>
             options.UseSqlServer("Server=tcp:wagsqlserver.database.windows.net,1433;Initial Catalog=WagDB;Encrypt=True;TrustServerCertificate=False;Connection Timeout=120;Authentication='Active Directory Default'",
             options => options.EnableRetryOnFailure())
