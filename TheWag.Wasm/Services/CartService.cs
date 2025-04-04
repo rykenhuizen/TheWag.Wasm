@@ -36,7 +36,7 @@ namespace TheWag.Wasm.Services
 
         public void IncrementItem(ProductDTO product)
         {
-            var item = Cart.Items.FirstOrDefault(x => x.Product == product);
+            var item = Cart.Items.FirstOrDefault(x => x.Product.Id == product.Id);
             if (item == null)
             {
                 Cart.Items.Add(new CartItem() { Product = product, Quantity = 1 });

@@ -3,7 +3,7 @@
 @using TheWag.Wasm.Services;
 
 @inject CartService cartService
-@inject HttpClient Http
+@inject ProductService productService
 @inject AppSettings appSettings
 
 @page "/catalog"
@@ -26,14 +26,14 @@ else
 
                 <div class="col">
                     <div class="card container-sm h-100">
-                        <img src="@vmProduct.URL" class="card-img-top force-fit" alt="@vmProduct.Product.Description">
+                        <img src="@($"{appSettings.BlobHostUrl}/{appSettings.ContainerName}/{vmProduct.Product.URL}")" class="card-img-top force-fit" alt="@vmProduct.Product.Description">
                         <div class="card-body d-flex flex-column">
                             <h5 class="card-title, text-wrap">@vmProduct.Product.Description</h5>
                             <p class="card-text">Price: @vmProduct.Product.PriceCurrency</p>
                             <div class="mt-auto">
-                                <button type="button" @onclick="(() => AddToCart(vmProduct.Product.Id))" class="btn btn-primary position-relative ">
-                                    @vmProduct.addBtnText
-                                    <span class="@vmProduct.hideBadge position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+                                <button type="button" @onclick="(() => AddToCart(vmProduct))" class="btn btn-primary position-relative ">
+                                    @vmProduct.AddBtnText
+                                    <span class="@vmProduct.HideBadge position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
                                         @vmProduct.Quantity In cart
                                         <span class="visually-hidden">Already in cart</span>
                                     </span>
@@ -52,53 +52,48 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        var products = await Http.GetFromJsonAsync<ProductDTO[]>($"{appSettings.FunctionHostUrl}/api/GetAllProducts");
-
-        _vmProducts = new List<vmProduct>();
-
-        foreach (var product in products)
+        var vmProducts = new List<vmProduct>();
+        foreach (var product in await productService.GetAllProducts())
         {
-            var qty = cartService.GetItemCount(product.Id.GetValueOrDefault());
-
             // //if the pic doesn't exist in storage, dont load
             // if (bcc.GetBlobClient(product.URL.Trim()).Exists())
             // {
-            _vmProducts.Add(new vmProduct()
-                    {
-                        //check to see if the pic exits
-                        Product = product,
-                    URL = $"{appSettings.BlobHostUrl}/{appSettings.ContainerName}/{product.URL}",
-                        Quantity = qty,
-                        addBtnText = qty > 0 ? "Add another" : "Add to cart",
-                        hideBadge = qty > 0 ? "" : "visually-hidden"
-                    });
+            var vm = new vmProduct(){
+                    Product = product
+            };
+
+            var cartitem = cartService.Cart.Items.FirstOrDefault(x => x.Product.Id == product.Id);
+            if (cartitem != null)
+            {
+                vm.AddBtnText = "Add another";
+                vm.HideBadge = "";
+                vm.Quantity = cartitem.Quantity;
+            }
+
+            vmProducts.Add(vm);
             // }
         }
 
+        _vmProducts = vmProducts;
         StateHasChanged();
     }
 
-
-    private void AddToCart(int? id)
+    private void AddToCart(vmProduct vm)
     {
-        //update the vm
-        var vm = _vmProducts?.FirstOrDefault(x => x.Product.Id == id);
-        vm.Quantity ++;
-        vm.hideBadge = "";
-        vm.addBtnText = "Add another";
-
+        //update viewmodel
+        vm.Quantity++;
+        vm.HideBadge = "";
 
         //update the cart
-		cartService.IncrementItem(vm.Product);
-        }
+        cartService.IncrementItem(vm.Product);
+        StateHasChanged();
+    }
 
     public class vmProduct
     {
         public required ProductDTO Product { get; set; }
-        public required string URL { get; set; }
         public int Quantity { get; set; } = 0;
-        public required string addBtnText { get; set; }
-        public string hideBadge { get; set; } = "";
-
+        public string HideBadge { get; set; } = "visually-hidden";
+        public string AddBtnText { get; set; } = "Add to cart";
     }
 }

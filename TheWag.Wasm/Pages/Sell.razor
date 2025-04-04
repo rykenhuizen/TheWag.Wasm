@@ -3,9 +3,11 @@
 @using System.Net;
 @using TheWag.Models;
 @using TheWag.Wasm.Util;
+@using TheWag.Wasm.Services;
 
 @inject HttpClient Http
 @inject AppSettings appSettings
+@inject ProductService productService
 
 @page "/sell"
 
@@ -65,7 +67,6 @@
 	
 	private vmSellUploadPic vmPic;
 	private bool _loading = false;
-	//private readonly string funHost = configuration["FunctionHostUrl"];
 	private enum SellStage {rdyToUpload, rdyToSell, addedToCatalog, notADog,};
 	private SellStage _sellStage = SellStage.rdyToUpload;
 	private static readonly HashSet<string> _imageExtension = new HashSet<string>([".jpg", ".jpeg", ".png", ".gif", ".webp"], StringComparer.OrdinalIgnoreCase);
@@ -147,7 +148,7 @@
 				Vendor = null
 			};
 
-		var response = await Http.PostAsJsonAsync<ProductDTO>($"{appSettings.FunctionHostUrl}/api/CreateProduct", product);
+		await productService.SaveProductAsync(product);
 
 		_sellStage = SellStage.addedToCatalog;
 		_loading = false;
