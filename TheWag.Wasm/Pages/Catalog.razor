@@ -1,12 +1,12 @@
 ﻿@using TheWag.Models;
 @using TheWag.Wasm.Util;
-@inject SessionStorage SessionStorageAccessor
+@using TheWag.Wasm.Services;
 
+@inject CartService cartService
 @inject HttpClient Http
 @inject AppSettings appSettings
 
 @page "/catalog"
-
 
 <PageTitle>Catalog</PageTitle>
 
@@ -52,34 +52,18 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-
-        //see if a cart exists in session
-        var cart = await SessionStorageAccessor.GetValueAsync<TheWag.Models.Cart>(appSettings.CartSessionKey);
-        if (cart == null)
-        {
-            //no cart found, create one
-            cart = new TheWag.Models.Cart()
-            {
-                Customer = new Customer() { Email = "email" },
-                Items = new List<CartItem>() {}
-            };
-        }
-        //persist the cart to session
-        await SessionStorageAccessor.SetValueAsync<TheWag.Models.Cart>(appSettings.CartSessionKey, cart);
-
-        //get all products
         var products = await Http.GetFromJsonAsync<ProductDTO[]>($"{appSettings.FunctionHostUrl}/api/GetAllProducts");
-        
+
         _vmProducts = new List<vmProduct>();
 
         foreach (var product in products)
         {
-            var qty = cart.Items.FirstOrDefault(x => x.Product.Id == product.Id)?.Quantity ?? 0;
+            var qty = cartService.GetItemCount(product.Id.GetValueOrDefault());
 
             // //if the pic doesn't exist in storage, dont load
             // if (bcc.GetBlobClient(product.URL.Trim()).Exists())
             // {
-                _vmProducts.Add(new vmProduct()
+            _vmProducts.Add(new vmProduct()
                     {
                         //check to see if the pic exits
                         Product = product,
@@ -88,15 +72,14 @@ else
                         addBtnText = qty > 0 ? "Add another" : "Add to cart",
                         hideBadge = qty > 0 ? "" : "visually-hidden"
                     });
-           // }
+            // }
         }
 
         StateHasChanged();
-
     }
 
 
-    private async Task AddToCart(int? id)
+    private void AddToCart(int? id)
     {
         //update the vm
         var vm = _vmProducts?.FirstOrDefault(x => x.Product.Id == id);
@@ -106,21 +89,8 @@ else
 
 
         //update the cart
-        var cart = await SessionStorageAccessor.GetValueAsync<TheWag.Models.Cart>(appSettings.CartSessionKey);
-        var cartItem = cart?.Items.FirstOrDefault(x => x.Product.Id == id);
-        if(cartItem == null){
-            cart.Items.Add(new CartItem
-                {
-                    Product = vm.Product,
-                    Quantity = 1
-                });
+		cartService.IncrementItem(vm.Product);
         }
-        else{
-            cartItem.Quantity++;
-        }
-
-        await SessionStorageAccessor.SetValueAsync<TheWag.Models.Cart>(appSettings.CartSessionKey, cart);
-    }
 
     public class vmProduct
     {

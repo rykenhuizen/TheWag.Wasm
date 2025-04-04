@@ -8,9 +8,7 @@ using Util.Azure.ComputerVision;
 var builder = FunctionsApplication.CreateBuilder(args);
 
 builder.ConfigureFunctionsWebApplication();
-
 builder.Services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
-
 builder.Services.AddSingleton<ComputerVisionClient>(serviceProvider => new ComputerVisionClient());
 
 builder.Services.AddDbContext<WagDbContext>(options =>
