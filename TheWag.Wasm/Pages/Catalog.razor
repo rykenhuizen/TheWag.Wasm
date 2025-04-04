@@ -26,19 +26,27 @@ else
 
                 <div class="col">
                     <div class="card container-sm h-100">
-                        <img src="@($"{appSettings.BlobHostUrl}/{appSettings.ContainerName}/{vmProduct.Product.URL}")" class="card-img-top force-fit" alt="@vmProduct.Product.Description">
+                        <img src="@($"{appSettings.BlobHostUrl}/{appSettings.ContainerName}/{vmProduct.FileName}")" class="card-img-top force-fit" alt="@vmProduct.Description">
                         <div class="card-body d-flex flex-column">
-                            <h5 class="card-title, text-wrap">@vmProduct.Product.Description</h5>
-                            <p class="card-text">Price: @vmProduct.Product.PriceCurrency</p>
-                            <div class="mt-auto">
-                                <button type="button" @onclick="(() => AddToCart(vmProduct))" class="btn btn-primary position-relative ">
-                                    @vmProduct.AddBtnText
-                                    <span class="@vmProduct.HideBadge position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
-                                        @vmProduct.Quantity In cart
-                                        <span class="visually-hidden">Already in cart</span>
-                                    </span>
-                                </button>
-                            </div>
+
+                            @if (vmProduct.Description == "")
+                            {
+                                <img src="images/TailLoader.gif" style="max-height:4em; max-width:4em" />
+                                <em>Loading...</em>
+                            }else{
+                                <h5 class="card-title, text-wrap">@vmProduct.Description</h5>
+                                <p class="card-text">Price: @string.Format("{0:C}", vmProduct.Price)</p>
+                                <div class="mt-auto">
+                                    <button type="button" @onclick="(() => AddToCart(vmProduct))" class="btn btn-primary position-relative ">
+                                        @vmProduct.AddBtnText
+                                        <span class="@vmProduct.HideBadge position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+                                            @vmProduct.Quantity In cart
+                                            <span class="visually-hidden">Already in cart</span>
+                                        </span>
+                                    </button>
+                                </div>
+                            }
+
                         </div>
                     </div>
                 </div>
@@ -52,29 +60,59 @@ else
 
     protected override async Task OnInitializedAsync()
     {
+        //the db can be slow to boot up
+		//I start to connect to the db, then load pics while waiting
+        var productInfo = productService.GetAllProducts();
+        
+
         var vmProducts = new List<vmProduct>();
-        foreach (var product in await productService.GetAllProducts())
+        
+        var blobs = await productService.GetBlobList();
+        foreach (var blobName in blobs)
         {
-            // //if the pic doesn't exist in storage, dont load
-            // if (bcc.GetBlobClient(product.URL.Trim()).Exists())
-            // {
-            var vm = new vmProduct(){
-                    Product = product
-            };
+            var product = new vmProduct()
+				{
+                    FileName = blobName,
+				};
+            vmProducts.Add(product);
+        }
+        _vmProducts = vmProducts;
+        StateHasChanged();
 
-            var cartitem = cartService.Cart.Items.FirstOrDefault(x => x.Product.Id == product.Id);
-            if (cartitem != null)
+        LoadProductInfoAsync(productInfo);
+    }
+
+    private async void LoadProductInfoAsync(Task<ProductDTO[]> products)
+    {
+        var toRemove = new List<vmProduct>();
+        var productInfo = await products;
+        foreach (var vm in _vmProducts)
+        {
+            var product = productInfo.FirstOrDefault(x => x.URL.Trim() == vm.FileName.Trim() );
+            if (product == null)
             {
-                vm.AddBtnText = "Add another";
-                vm.HideBadge = "";
-                vm.Quantity = cartitem.Quantity;
-            }
+                toRemove.Add(vm);
+            }else{
+                vm.Description = product.Description;
+                vm.Price = product.Price;
+				vm.Id = product.Id ?? 0;
+				vm.Stock = product.Stock;
 
-            vmProducts.Add(vm);
-            // }
+                var cartitem = cartService.Cart.Items.FirstOrDefault(x => x.Product.Id == product.Id);
+                if (cartitem != null)
+                {
+                    vm.AddBtnText = "Add another";
+                    vm.HideBadge = "";
+                    vm.Quantity = cartitem.Quantity;
+                }
+            }  
         }
 
-        _vmProducts = vmProducts;
+        //remove pics not for sale
+        foreach(var vm in toRemove){
+            _vmProducts.Remove(vm);
+        }
+
         StateHasChanged();
     }
 
@@ -84,15 +122,28 @@ else
         vm.Quantity++;
         vm.HideBadge = "";
 
+
         //update the cart
-        cartService.IncrementItem(vm.Product);
+        var product = new ProductDTO()
+			{
+				Description = vm.Description,
+				Price = vm.Price,
+				URL = vm.FileName,
+				Id = vm.Id,
+				Stock = vm.Stock,
+			};
+        cartService.IncrementItem(product);
         StateHasChanged();
     }
 
     public class vmProduct
     {
-        public required ProductDTO Product { get; set; }
+		public int Id { get; set; } = 0;
+        public string Description { get; set; } = "";
+        public string FileName { get; set; } = "";
         public int Quantity { get; set; } = 0;
+        public decimal Price { get; set; } = 0;
+		public int Stock { get; set; } = 0;
         public string HideBadge { get; set; } = "visually-hidden";
         public string AddBtnText { get; set; } = "Add to cart";
     }

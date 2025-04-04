@@ -9,3 +9,7 @@ POST {{TheWag.Functions_HostAddress}}/api/GetAnalysis
 
 }
 ###
+
+GET {{TheWag.Functions_HostAddress}}/api/GetPicList
+
+###
