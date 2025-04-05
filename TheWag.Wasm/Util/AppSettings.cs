@@ -4,7 +4,9 @@
     {
         public string BlobHostUrl { get; private set; }
         public string FunctionHostUrl { get; private set; }
-        public string ContainerName { get; private set; }
+        public string ValidContainerName { get; private set; }
+        public string InvalidContainerName { get; private set; }
+        public string TempContainerName { get; private set; }
         public string CartSessionKey { get; private set; }
 
         public AppSettings(IConfiguration configuration)
@@ -16,7 +18,9 @@
 
             BlobHostUrl = configuration["BlobHostUrl"] ?? throw new ArgumentNullException(nameof(BlobHostUrl));
             FunctionHostUrl = configuration["FunctionHostUrl"] ?? throw new ArgumentNullException(nameof(FunctionHostUrl));
-            ContainerName = configuration["ContainerName"] ?? throw new ArgumentNullException(nameof(ContainerName));
+            ValidContainerName = configuration["ValidContainer"] ?? throw new ArgumentNullException(nameof(ValidContainerName));
+            InvalidContainerName = configuration["InvalidContainer"] ?? throw new ArgumentNullException(nameof(InvalidContainerName));
+            TempContainerName = configuration["TempContainer"] ?? throw new ArgumentNullException(nameof(TempContainerName));
             CartSessionKey = configuration["CartSessionKey"] ?? throw new ArgumentNullException(nameof(CartSessionKey));
         }
     }

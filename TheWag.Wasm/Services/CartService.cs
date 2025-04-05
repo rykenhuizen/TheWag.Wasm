@@ -7,14 +7,17 @@ namespace TheWag.Wasm.Services
     {
         private readonly SessionStorage _session;
         private readonly AppSettings _appSettings;
+        private readonly ILogger<CartService> _logger;
         public CustomerCart Cart { get; private set; }
 
-        public CartService(SessionStorage sessionStorageAccessor, AppSettings appSettings)
+        public CartService(SessionStorage sessionStorageAccessor, AppSettings appSettings, ILogger<CartService> logger)
         {
             _session = sessionStorageAccessor;
             _appSettings = appSettings;
+            _logger = logger;
             Cart = new CustomerCart();
             SetCartFromSessioinAsync();
+
         }
 
         public void DecrementItem(ProductDTO product)

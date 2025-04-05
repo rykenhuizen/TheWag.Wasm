@@ -9,19 +9,12 @@ using TheWag.Models;
 
 namespace TheWag.Functions
 {
-    public class Data
+    public class Data(ILogger<Data> logger, WagDbContext context, IMapper mapper)
     {
-        private readonly ILogger<Data> _logger;
-        private readonly WagDbContext _context;
-        private readonly IMapper _mapper;
+        private readonly ILogger<Data> _logger = logger;
+        private readonly WagDbContext _context = context;
+        private readonly IMapper _mapper = mapper;
 
-        public Data(ILogger<Data> logger, WagDbContext context, IMapper mapper)
-        {
-            _logger = logger;
-            _context = context;
-            _mapper = mapper;
-        }
-        
         [Function("GetAllProducts")]
         public IActionResult GetAll([HttpTrigger(AuthorizationLevel.Anonymous, "get")] HttpRequest req)
         {

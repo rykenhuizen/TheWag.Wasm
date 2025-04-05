@@ -5,12 +5,10 @@
 @using TheWag.Wasm.Util;
 @using TheWag.Wasm.Services;
 
-@inject HttpClient Http
-@inject AppSettings appSettings
 @inject ProductService productService
+@inject AppSettings appSettings
 
 @page "/sell"
-
 
 
 @if (_sellStage == SellStage.rdyToUpload)
@@ -27,7 +25,7 @@
 		<h3>Upload complete, this is a picture of a dog!</h3>
 		<img src="@vmPic.URL" />
 		<p><b>Description:</b> @vmPic.Description</p>
-		<p><b>Tags:</b> @string.Join(",", vmPic.Tags.Select(x => x))</p>
+		<p><b>Tags:</b> @string.Join(", ", vmPic.Tags.Select(x => x))</p>
 	</div>
 
 	<EditForm Model="sellModel" OnSubmit="SaveToDB" FormName="SellDogPic">
@@ -61,74 +59,34 @@
 }
 
 @code {
-
-	[SupplyParameterFromForm]
-	private SellModel sellModel { get; set; }
-	
-	private vmSellUploadPic vmPic;
-	private bool _loading = false;
-	private enum SellStage {rdyToUpload, rdyToSell, addedToCatalog, notADog,};
 	private SellStage _sellStage = SellStage.rdyToUpload;
+	private bool _loading = false;
+
+	private vmSellUploadPic vmPic = new vmSellUploadPic();
 	private static readonly HashSet<string> _imageExtension = new HashSet<string>([".jpg", ".jpeg", ".png", ".gif", ".webp"], StringComparer.OrdinalIgnoreCase);
 
-	protected override void OnInitialized()
-	{
-		sellModel ??= new SellModel();
-	}
+	[SupplyParameterFromForm]
+	private SellFormModel sellModel { get; set; } = new SellFormModel();
 
 	private async void OnInputFileChange(InputFileChangeEventArgs e)
 	{
 		_loading = true;
 		StateHasChanged();
 
-		//TODO: maybe move this out of the view
-		var file = e.File;
+		//add a guid to the file name to avoid collisions
+		var guidName = Guid.NewGuid().ToString() + e.File.Name;
+
+		var analysisResult = await productService.AnalyzeImage(e.File, guidName);
+		vmPic.Description = analysisResult.Description;
+		vmPic.Tags = analysisResult.Tags;
+		vmPic.IsDog = analysisResult.IsDog;
+		vmPic.FileName = guidName;
+		vmPic.URL = $"{appSettings.BlobHostUrl}/{appSettings.TempContainerName}/{vmPic.FileName}";
 		
-		if (file != null)
-		{
+		_sellStage = vmPic.IsDog ? SellStage.rdyToSell : SellStage.notADog;
+		_loading = false;
+		StateHasChanged();
 
-			//TODO: I think there is a better solution than this tempVm
-			var tempVm = new vmSellUploadPic();
-			tempVm.FileName = Guid.NewGuid().ToString() + file.Name;
-
-
-			//TODO: check for duplicate pic
-
-			//get image analysis from computer vision service
-			try
-			{
-				var resizedFile = await file.RequestImageFileAsync("image/png", 300, 500);
-				using (var ms = resizedFile.OpenReadStream(resizedFile.Size))
-				{
-					var content = new MultipartFormDataContent();
-					content.Add(new StreamContent(ms, Convert.ToInt32(resizedFile.Size)), "image", tempVm.FileName);
-					var analysisResponse = await Http.PostAsync($"{appSettings.FunctionHostUrl}/api/GetAnalysis", content);
-
-					var imageAnalysis = await analysisResponse.Content.ReadFromJsonAsync<ImageAnalysisResults>();
-					tempVm.Description = imageAnalysis.Description;
-					tempVm.Tags = imageAnalysis.Tags;
-					tempVm.IsDog = imageAnalysis.Tags.Contains("dog");
-
-					//save the pic if it's a dog
-					if (tempVm.IsDog){
-						var saveResponse = await Http.PostAsync($"{appSettings.FunctionHostUrl}/api/SaveDogPic", content);
-						tempVm.URL = await saveResponse.Content.ReadAsStringAsync();
-					}
-
-				}				
-			}
-			catch (Exception ex)
-			{
-				Console.WriteLine(ex.ToString());
-				tempVm.Description = "Error analyzing image" + ex.ToString();
-			}
-
-			vmPic = tempVm;
-			_sellStage = vmPic.IsDog ? SellStage.rdyToSell : SellStage.notADog;
-			_loading = false;
-			StateHasChanged();
-
-		}
 	}
 
 	private async void SaveToDB()
@@ -136,26 +94,16 @@
 		_loading = true;
 		StateHasChanged();
 
-		var tags = vmPic.Tags.Select(x => new TagDTO() { Text = x }).ToList();
-
-		var product = new ProductDTO()
-			{
-				Description = vmPic.Description,
-				Price = sellModel.Price,
-				Stock = sellModel.Stock,
-				URL = vmPic.FileName,
-				Tags = tags,
-				Vendor = null
-			};
-
-		await productService.SaveProductAsync(product);
+		await productService.SaveProductAsync(vmPic.Description, sellModel.Price.GetValueOrDefault(), sellModel.Stock.GetValueOrDefault(), vmPic.FileName, vmPic.Tags);
 
 		_sellStage = SellStage.addedToCatalog;
 		_loading = false;
 		StateHasChanged();
 	}
 
-	internal class vmSellUploadPic
+	private enum SellStage { rdyToUpload, rdyToSell, addedToCatalog, notADog, };
+
+	private class vmSellUploadPic
 	{
 		internal string Description { get; set; } = "No image uploaded";
 		internal IList<string> Tags { get; set; } = new List<string>();
@@ -164,10 +112,10 @@
 		internal string FileName { get; set; } = "";
 	}
 
-	internal class SellModel
+	private class SellFormModel
 	{
-		internal decimal Price { get; set; } = 9.99m;
-		internal int Stock { get; set; } = 10;
+		internal decimal? Price { get; set; }
+		internal int? Stock { get; set; }
 		internal string? VendorEmail { get; set; } = "Vendor Email";
 		internal string? VendorName { get; set; } = "Vendor Name";
 	}

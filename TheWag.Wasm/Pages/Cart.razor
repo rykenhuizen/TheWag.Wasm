@@ -36,7 +36,7 @@
                 {
                     <tr>
                         <td>
-                            <img src="@($"{appSettings.BlobHostUrl}/{appSettings.ContainerName}/{item.Product.URL}")" class="card-img-top force-fit-thumbnail" alt="@item.Product.Description">
+                            <img src="@($"{appSettings.BlobHostUrl}/{appSettings.ValidContainerName}/{item.Product.URL}")" class="card-img-top force-fit-thumbnail" alt="@item.Product.Description">
                             <span style="display:inline-block">@item.Product.Description</span>
                         </td>
                         <td>

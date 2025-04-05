@@ -26,7 +26,7 @@ else
 
                 <div class="col">
                     <div class="card container-sm h-100">
-                        <img src="@($"{appSettings.BlobHostUrl}/{appSettings.ContainerName}/{vmProduct.FileName}")" class="card-img-top force-fit" alt="@vmProduct.Description">
+                        <img src="@($"{appSettings.BlobHostUrl}/{appSettings.ValidContainerName}/{vmProduct.FileName}")" class="card-img-top force-fit" alt="@vmProduct.Description">
                         <div class="card-body d-flex flex-column">
 
                             @if (vmProduct.Description == "")
@@ -136,15 +136,15 @@ else
         StateHasChanged();
     }
 
-    public class vmProduct
+    private class vmProduct
     {
-		public int Id { get; set; } = 0;
-        public string Description { get; set; } = "";
-        public string FileName { get; set; } = "";
-        public int Quantity { get; set; } = 0;
-        public decimal Price { get; set; } = 0;
-		public int Stock { get; set; } = 0;
-        public string HideBadge { get; set; } = "visually-hidden";
-        public string AddBtnText { get; set; } = "Add to cart";
+        internal int Id { get; set; } = 0;
+        internal string Description { get; set; } = "";
+        internal string FileName { get; set; } = "";
+        internal int Quantity { get; set; } = 0;
+        internal decimal Price { get; set; } = 0;
+        internal int Stock { get; set; } = 0;
+        internal string HideBadge { get; set; } = "visually-hidden";
+        internal string AddBtnText { get; set; } = "Add to cart";
     }
 }
