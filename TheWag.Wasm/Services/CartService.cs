@@ -64,6 +64,11 @@ namespace TheWag.Wasm.Services
             }
         }
 
+        public void UpdateCustomer(string email)
+        {
+            Cart.Customer = new Customer() { Email = email };
+        }
+
         private async void SaveCartToSessionAsync()
         {
             await _session.SetValueAsync(_appSettings.CartSessionKey, Cart);

@@ -5,29 +5,20 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.Logging;
-using Microsoft.IdentityModel.Tokens;
-using TheWag.Models;
+using TheWag.Wasm.Util;
 using static System.Runtime.InteropServices.JavaScript.JSType;
-using static Microsoft.EntityFrameworkCore.DbLoggerCategory.Database;
 
-namespace TheWag.Functions
+namespace TheWag.Functions.Endpoints
 {
     public class Blob
     {
         private readonly ILogger<Blob> _logger;
-        private readonly string _connection;
-        private readonly string _validContainer;
-        private readonly string _invalidContainer;
-        private readonly string _tempContainer;
-        //private readonly BlobContainerClient _blobClient;
+        private readonly AppSettings _appSettings;
 
-        public Blob(ILogger<Blob> logger)
+        public Blob(ILogger<Blob> logger, AppSettings appSettings)
         {
             _logger = logger;
-            _connection = Environment.GetEnvironmentVariable("StorageConnectionString") ?? throw new ArgumentNullException(nameof(_connection), "StorageConnectionString environment variable is not set.");
-            _validContainer = Environment.GetEnvironmentVariable("ValidContainer") ?? throw new ArgumentNullException(nameof(_validContainer), "ValidContainer environment variable is not set.");
-            _invalidContainer = Environment.GetEnvironmentVariable("InvalidContainer") ?? throw new ArgumentNullException(nameof(_invalidContainer), "InvalidContainer environment variable is not set.");
-            _tempContainer = Environment.GetEnvironmentVariable("TempContainer") ?? throw new ArgumentNullException(nameof(_tempContainer), "TempContainer environment variable is not set.");
+            _appSettings = appSettings;
         }
 
         [Function("SaveTempPic")]
@@ -36,7 +27,7 @@ namespace TheWag.Functions
             try
             {
                 var file = req.Form.Files[0];
-                SavePic(file, _tempContainer);
+                SavePic(file, _appSettings.TempContainerName);
 
                 return new OkObjectResult(file.Name);
             }
@@ -53,7 +44,7 @@ namespace TheWag.Functions
             try
             {
                 var file = req.Form.Files[0];
-                SavePic(file, _invalidContainer);
+                SavePic(file, _appSettings.InvalidContainerName);
 
                 return new OkObjectResult(file.Name);
             }
@@ -62,14 +53,14 @@ namespace TheWag.Functions
                 _logger.LogError(ex, "Error in saving InvalidPic");
                 return new BadRequestObjectResult("Error in saving InvalidPic: " + ex.Message);
             }
-               
+
         }
 
         [Function("GetPicList")]
         public IActionResult Get([HttpTrigger(AuthorizationLevel.Anonymous, "get")] HttpRequest req)
         {
             _logger.LogInformation("C# HTTP trigger function GetPicList called");
-            var client = new BlobContainerClient(_connection, _validContainer);
+            var client = new BlobContainerClient(_appSettings.StorageConnectionString, _appSettings.ValidContainerName);
             var blobs = client.GetBlobs();
             var blobNames = new List<string>();
             foreach (BlobItem blobItem in blobs)
@@ -88,12 +79,12 @@ namespace TheWag.Functions
                 var filename = req.ReadFromJsonAsync<string>().Result;
                 //var body = (await new StreamReader(req.Body).ReadToEndAsync()).Trim();
                 //var filename = JsonConvert.DeserializeObject(body);
-                var bscl = new BlobServiceClient(_connection);
-                var destinationContainer = bscl.GetBlobContainerClient(_validContainer);
+                var bscl = new BlobServiceClient(_appSettings.StorageConnectionString);
+                var destinationContainer = bscl.GetBlobContainerClient(_appSettings.ValidContainerName);
                 var destinationBlob = destinationContainer.GetBlobClient(filename);
-                var sourceContainer = bscl.GetBlobContainerClient(_tempContainer);
+                var sourceContainer = bscl.GetBlobContainerClient(_appSettings.TempContainerName);
                 var sourceBlob = sourceContainer.GetBlobClient(filename);
-                
+
                 await destinationBlob.StartCopyFromUriAsync(sourceBlob.Uri);
                 await sourceBlob.DeleteAsync();
 
@@ -108,7 +99,7 @@ namespace TheWag.Functions
 
         private void SavePic(IFormFile image, string container)
         {
-            var client = new BlobContainerClient(_connection, container);
+            var client = new BlobContainerClient(_appSettings.StorageConnectionString, container);
             using var myBlob = image.OpenReadStream();
             var blob = client.GetBlobClient(image.FileName);
             var r = blob.Upload(myBlob);

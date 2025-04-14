@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
 
-namespace TheWag.Api.WagDB.EF;
+namespace TheWag.Functions.EF;
 
 public partial class WagDbContext : DbContext
 {
@@ -27,9 +27,9 @@ public partial class WagDbContext : DbContext
 
     public virtual DbSet<Vendor> Vendors { get; set; }
 
-//    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-//#warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see https://go.microsoft.com/fwlink/?LinkId=723263.
-//        => optionsBuilder.UseSqlServer("Server=tcp:wagsqlserver.database.windows.net,1433;Initial Catalog=WagDB;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;Authentication='Active Directory Default';");
+    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+#warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see https://go.microsoft.com/fwlink/?LinkId=723263.
+        => optionsBuilder.UseSqlServer("Server=tcp:wagsqlserver.database.windows.net,1433;Initial Catalog=WagDB;Encrypt=True;TrustServerCertificate=False;Connection Timeout=120;Authentication='Active Directory Default'");
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -55,14 +55,13 @@ public partial class WagDbContext : DbContext
         {
             entity.ToTable("Order");
 
-            entity.Property(e => e.Id)
-                .ValueGeneratedOnAdd()
-                .HasColumnName("ID");
+            entity.Property(e => e.Id).HasColumnName("ID");
             entity.Property(e => e.Date).HasColumnType("datetime");
             entity.Property(e => e.FkCustomerId).HasColumnName("FK_Customer_ID");
+            entity.Property(e => e.Total).HasColumnType("money");
 
-            entity.HasOne(d => d.IdNavigation).WithOne(p => p.Order)
-                .HasForeignKey<Order>(d => d.Id)
+            entity.HasOne(d => d.FkCustomer).WithMany(p => p.Orders)
+                .HasForeignKey(d => d.FkCustomerId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_Order_Customer");
         });
@@ -108,8 +107,7 @@ public partial class WagDbContext : DbContext
             entity.Property(e => e.FkProductId).HasColumnName("FK_Product_ID");
             entity.Property(e => e.Text)
                 .HasMaxLength(255)
-                .IsFixedLength()
-                .HasColumnName("Text");
+                .IsFixedLength();
 
             entity.HasOne(d => d.FkProduct).WithMany(p => p.Tags)
                 .HasForeignKey(d => d.FkProductId)
@@ -121,14 +119,12 @@ public partial class WagDbContext : DbContext
         {
             entity.ToTable("Vendor");
 
-            entity.Property(e => e.Id)
-                .ValueGeneratedNever()
-                .HasColumnName("ID");
+            entity.Property(e => e.Id).HasColumnName("ID");
             entity.Property(e => e.Email)
                 .HasMaxLength(75)
                 .IsFixedLength();
             entity.Property(e => e.Name)
-                .HasMaxLength(100)
+                .HasMaxLength(50)
                 .IsFixedLength();
         });
 

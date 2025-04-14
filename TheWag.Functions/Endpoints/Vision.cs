@@ -5,14 +5,14 @@ using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.Logging;
 using Util.Azure.ComputerVision;
 
-namespace TheWag.Functions
+namespace TheWag.Functions.Endpoints
 {
     public class Vision
     {
         private readonly ILogger<Vision> _logger;
-        private readonly ComputerVisionClient _visionClient;
+        private readonly ComputerVisionService _visionClient;
 
-        public Vision(ILogger<Vision> logger, ComputerVisionClient cvc)
+        public Vision(ILogger<Vision> logger, ComputerVisionService cvc)
         {
             _logger = logger;
             _visionClient = cvc;
