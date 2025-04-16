@@ -15,6 +15,7 @@ builder.Services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
 builder.Services.AddSingleton<ComputerVisionService>();
 builder.Services.AddSingleton<AppSettings>();
 builder.Services.AddSingleton<EmailService>();
+builder.Services.AddSingleton<BlobService>();
 
 
 //Scaffold-DbContext "Server=tcp:wagsqlserver.database.windows.net,1433;Initial Catalog=WagDB;Encrypt=True;TrustServerCertificate=False;Connection Timeout=120;Authentication='Active Directory Default'" Microsoft.EntityFrameworkCore.SqlServer -OutputDir EF
