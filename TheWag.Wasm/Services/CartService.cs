@@ -67,6 +67,7 @@ namespace TheWag.Wasm.Services
         public void UpdateCustomer(string email)
         {
             Cart.Customer = new Customer() { Email = email };
+            SaveCartToSessionAsync();
         }
 
         private async void SaveCartToSessionAsync()
@@ -74,9 +75,10 @@ namespace TheWag.Wasm.Services
             await _session.SetValueAsync(_appSettings.CartSessionKey, Cart);
         }
 
-        public async void ClearCartAsync()
+        public void ClearCart()
         {
-            await _session.SetValueAsync(_appSettings.CartSessionKey, new CustomerCart());
+            Cart.Items.Clear();
+            SaveCartToSessionAsync();
         }
 
         public int GetItemCount(int productid)

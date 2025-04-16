@@ -118,13 +118,13 @@
 
     private async Task SubmitOrder()
     {
-        //save user order
+
         cartService.UpdateCustomer("bradrykenhuizen@gmail.com");
         _orderId = await checkoutService.Checkout(cartService.Cart);
 
-        //email user pics
-
 	    _checkoutStage = CheckoutStage.complete;
         StateHasChanged();
+
+		cartService.ClearCart();
     }
 }
