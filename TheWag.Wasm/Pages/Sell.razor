@@ -59,6 +59,7 @@
 }
 
 @code {
+	private enum SellStage { rdyToUpload, rdyToSell, addedToCatalog, notADog, };
 	private SellStage _sellStage = SellStage.rdyToUpload;
 	private bool _loading = false;
 
@@ -100,8 +101,6 @@
 		_loading = false;
 		StateHasChanged();
 	}
-
-	private enum SellStage { rdyToUpload, rdyToSell, addedToCatalog, notADog, };
 
 	private class vmSellUploadPic
 	{

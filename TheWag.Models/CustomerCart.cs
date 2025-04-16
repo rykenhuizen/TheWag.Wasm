@@ -8,9 +8,9 @@ namespace TheWag.Models
 {
     public class CustomerCart
     {
-        public IList<CartItem> Items { get; init; }
-        public Customer? Customer { get; init; }
-        public Promo[]? Promo { get; init; }
+        public IList<CartItem> Items { get; set; }
+        public Customer? Customer { get; set; }
+        public Promo[]? Promo { get; set; }
 
         public CustomerCart()
         {

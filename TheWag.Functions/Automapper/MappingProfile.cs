@@ -1,7 +1,7 @@
 ﻿namespace TheWag.Api.WagDB
 {
     using AutoMapper;
-    using TheWag.Api.WagDB.EF;
+    using TheWag.Functions.EF;
     using TheWag.Models;
 
     public class MappingProfile : Profile
@@ -12,6 +12,8 @@
             CreateMap<ProductDTO, Product>();
             CreateMap<Tag, TagDTO>();
             CreateMap<TagDTO, Tag>();
+
+            CreateMap<CustomerCart, Order>();
         }
     }
 }

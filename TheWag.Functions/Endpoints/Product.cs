@@ -2,16 +2,15 @@ using AutoMapper;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.Functions.Worker;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using TheWag.Api.WagDB.EF;
+using TheWag.Functions.EF;
 using TheWag.Models;
 
-namespace TheWag.Functions
+namespace TheWag.Functions.Endpoints
 {
-    public class Data(ILogger<Data> logger, WagDbContext context, IMapper mapper)
+    public class Product(ILogger<Product> logger, WagDbContext context, IMapper mapper)
     {
-        private readonly ILogger<Data> _logger = logger;
+        private readonly ILogger<Product> _logger = logger;
         private readonly WagDbContext _context = context;
         private readonly IMapper _mapper = mapper;
 
@@ -20,7 +19,7 @@ namespace TheWag.Functions
         {
             _logger.LogInformation("GetAllProducts called");
             var result = _mapper.ProjectTo<ProductDTO>(_context.Products).ToList();
-            
+
             return new OkObjectResult(result);
         }
 
@@ -30,8 +29,9 @@ namespace TheWag.Functions
             _logger.LogInformation("CreateProduct called");
             var product = req.ReadFromJsonAsync<ProductDTO>().Result;
 
-            var p = _mapper.Map<Product>(product);
-            var r = _context.Products.Add(_mapper.Map<Product>(p));
+            var p = _mapper.Map<EF.Product>(product);
+            //var r = _context.Products.Add(_mapper.Map<Functions.EF.Product>(p));
+            _context.Products.Add(p);
             _context.SaveChanges();
 
             return new OkObjectResult("Product created");

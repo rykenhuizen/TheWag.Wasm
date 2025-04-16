@@ -1,0 +1,90 @@
+﻿@page "/search"
+
+<h3>TagCloud</h3>
+
+<style>
+    #tagCloud {
+        width: 238px;
+        border: solid 1px #ccc;
+        padding: 5px;
+        margin-bottom: 10px;
+        text-align: justify;
+    }
+
+        #tagCloud A {
+            text-decoration: none;
+            margin-left: 5px;
+            margin-right: 5px;
+            font-family: Trebuchet MS, Verdana, Arial;
+            text-transform: lowercase;
+        }
+
+            #tagCloud A:hover {
+                color: #00cc00;
+                text-decoration: underline;
+            }
+
+            #tagCloud A.weight1 {
+                color: #ff9900;
+                font-size: 1.9em;
+                font-weight: bolder;
+            }
+
+            #tagCloud A.weight2 {
+                color: #4169e1;
+                font-size: 1.5em;
+                font-weight: bolder;
+            }
+
+            #tagCloud A.weight3 {
+                color: #009eff;
+                font-size: 1.4em;
+                font-weight: bolder;
+            }
+
+            #tagCloud A.weight4 {
+                color: #4188cf;
+                font-size: 1.2em;
+            }
+
+            #tagCloud A.weight5 {
+                color: #83bcd8;
+                font-size: 1.0em;
+            }
+</style>
+<div id="tagCloud">
+    @((MarkupString)cloudText)
+</div>
+
+@code {
+	string cloudText = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+		var tagDict = new Dictionary<string, int>{
+			{"tag1", 1},
+			{"tag2", 2},
+			{"tag3", 2},
+			{"tag4", 4},
+			{"tag5", 3},
+			{"tag6", 6},
+			{"tag7", 2},
+			{"tag8", 1},
+			{"tag9", 1},
+			{"tag10", 6}
+		};
+
+		var browseUrl = "/catalog";
+		var tagCloud = TheWag.Wasm.Util.TagCloud.GetCloud(
+            tagDict, 
+            $"<a class='weight$weight$' href='{browseUrl}?tag=$urlencodetag$'>$tag$</a> "
+        );
+
+		cloudText = tagCloud;
+	}
+
+	// //var tagCloud = await ContentTag.GetCloudDataAsync();
+ //        var html = TheWag.Wasm.Util.TagCloud.GetCloud(ContentTag.GetCloudData().Tables[0],
+ //                $"<a class='weight$weight$' href='{browseUrl}?tag=$urlencodetag$'>$tag$</a> ");
+    
+}

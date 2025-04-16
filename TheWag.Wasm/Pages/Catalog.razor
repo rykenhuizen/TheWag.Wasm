@@ -12,6 +12,22 @@
 
 <h3>Catalog</h3>
 
+<button @onclick="ToggleFilterTags">Filter Tags (under construction)</button>
+<div hidden="@_hideFilter" id="filterTags">
+    @if (_filterTags == null)
+    {
+        <img src="images/animated-paw-prints.gif" style="max-height:4em; max-width:auto" />
+        <em>Loading product info...</em>
+    }else
+    {
+        @foreach (var filter in _filterTags)
+        {
+            <button>@($"{filter.Key}({filter.Value})") </button>
+        }
+    }
+</div>  
+
+
 @if (_vmProducts == null)
 {
     <img src="images/TailLoader.gif" style="max-height:4em; max-width:4em" />
@@ -19,6 +35,9 @@
 }
 else
 {
+    <div>
+
+    </div>
     <div class="container">
         <div class="row row-cols-auto">
             @foreach (var vmProduct in _vmProducts)
@@ -31,8 +50,8 @@ else
 
                             @if (vmProduct.Description == "")
                             {
-                                <img src="images/TailLoader.gif" style="max-height:4em; max-width:4em" />
-                                <em>Loading...</em>
+                                <img src="images/animated-paw-prints.gif" style="max-height:4em; max-width:auto" />
+                                <em>Loading product info...</em>
                             }else{
                                 <h5 class="card-title, text-wrap">@vmProduct.Description</h5>
                                 <p class="card-text">Price: @string.Format("{0:C}", vmProduct.Price)</p>
@@ -57,16 +76,18 @@ else
 
 @code {
     private IList<vmProduct>? _vmProducts = null;
+    private Dictionary<string, int> _filterTags;
+    private bool _hideFilter = true;
 
     protected override async Task OnInitializedAsync()
     {
         //the db can be slow to boot up
-		//I start to connect to the db, then load pics while waiting
+        //I start to connect to the db, then load pics while waiting
         var productInfo = productService.GetAllProducts();
-        
+
 
         var vmProducts = new List<vmProduct>();
-        
+
         var blobs = await productService.GetBlobList();
         foreach (var blobName in blobs)
         {
@@ -82,6 +103,13 @@ else
         LoadProductInfoAsync(productInfo);
     }
 
+	
+	private void ToggleFilterTags()
+	{
+		_hideFilter = !_hideFilter;
+		StateHasChanged();
+	}
+
     private async void LoadProductInfoAsync(Task<ProductDTO[]> products)
     {
         var toRemove = new List<vmProduct>();
@@ -95,8 +123,8 @@ else
             }else{
                 vm.Description = product.Description;
                 vm.Price = product.Price;
-				vm.Id = product.Id ?? 0;
-				vm.Stock = product.Stock;
+                vm.Id = product.Id ?? 0;
+                vm.Stock = product.Stock;
 
                 var cartitem = cartService.Cart.Items.FirstOrDefault(x => x.Product.Id == product.Id);
                 if (cartitem != null)
@@ -113,7 +141,27 @@ else
             _vmProducts.Remove(vm);
         }
 
+        PopulateFilterTags(productInfo);
+
         StateHasChanged();
+    }
+
+    private void PopulateFilterTags(ProductDTO[] products)
+    {
+        var tags = products.SelectMany(x => x.Tags)
+            .GroupBy(x => x.Text)
+            //.OrderByDescending(x => x)
+            .ToDictionary(x => x.Key, x => x.Count());
+
+		_filterTags = tags;
+
+        StateHasChanged();
+
+        // var t = _vmProducts.Select(x => x.).Distinct().ToList();
+		// var tags = _vmProducts.GroupBy(x => x.Description)
+		// 	.Select(g => new { Tag = g.Key, Count = g.Count() })
+		// 	.OrderByDescending(g => g.Count)
+		// 	.ToList();
     }
 
     private void AddToCart(vmProduct vm)

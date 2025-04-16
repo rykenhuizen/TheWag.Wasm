@@ -6,12 +6,12 @@
 
 @inject CartService cartService
 @inject AppSettings appSettings
+@inject CheckoutService checkoutService
 
 @page "/cart"
 
 <PageTitle>Sopping cart</PageTitle>
 
-<h3>Shopping Cart</h3>
 <div class="container-fluid">
 
     @if (cartService.Cart == null)
@@ -21,43 +21,110 @@
     }
     else
     {
-        <p>Order for @(cartService.Cart?.Customer?.Email ?? "anonymous")</p>
-        <table class="table">
-            <thead>
-                <tr>
-                    <th>Description</th>
-                    <th>Qty</th>
-                    <th>Price</th>
-                    <th>Sub Total</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach (var item in cartService.Cart.Items)
+        <div class="card">
+            <div class="card-body">
+                <h3>Shopping Cart</h3>
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Description</th>
+                            <th>Qty</th>
+                            <th>Price</th>
+                            <th>Sub Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in cartService.Cart.Items)
+                        {
+                            <tr>
+                                <td>
+                                    <img src="@($"{appSettings.BlobHostUrl}/{appSettings.ValidContainerName}/{item.Product.URL}")" class="card-img-top force-fit-thumbnail" alt="@item.Product.Description">
+                                    <span style="display:inline-block">@item.Product.Description</span>
+                                </td>
+                                <td>
+                                    @if (_checkoutStage == CheckoutStage.viewCart)
+                                    {
+                                        <img src="images/delete.png" class="icon" @onclick="(() => cartService.DecrementItem(item.Product))" />
+                                    }
+                                    @item.Quantity
+                                    @if (_checkoutStage == CheckoutStage.viewCart)
+                                    {
+                                        <img src="images/plus.png" class="icon" @onclick="(() => cartService.IncrementItem(item.Product))" />
+                                    }
+                                </td>
+                                <td>@item.Product.PriceCurrency</td>
+                                <td>@string.Format("{0:C}", item.Quantity * item.Product.Price)</td>
+                            </tr>
+                        }
+                        <tr>
+                            <td>Total</td>
+                            <td></td>
+                            <td></td>
+                            <td>@string.Format("{0:C}", cartService.GetTotalPrice())</td>
+                        </tr>
+                    </tbody>
+                </table>
+                @if (_checkoutStage == CheckoutStage.viewCart)
                 {
-                    <tr>
-                        <td>
-                            <img src="@($"{appSettings.BlobHostUrl}/{appSettings.ValidContainerName}/{item.Product.URL}")" class="card-img-top force-fit-thumbnail" alt="@item.Product.Description">
-                            <span style="display:inline-block">@item.Product.Description</span>
-                        </td>
-                        <td>
-                            <img src="images/delete.png" class="icon" @onclick="(() => cartService.DecrementItem(item.Product))" />
-                            @item.Quantity
-                            <img src="images/plus.png" class="icon" @onclick="(() => cartService.IncrementItem(item.Product))" />
-                        </td>
-                        <td>@item.Product.PriceCurrency</td>
-                        <td>@string.Format("{0:C}", item.Quantity * item.Product.Price)</td>
-                    </tr>
+                    <button type="button" @onclick="(() => Checkout())" class="btn btn-primary position-relative ">
+                        Checkout
+                    </button>
                 }
-                <tr>
-                    <td>Total</td>
-                    <td></td>
-                    <td></td>
-                    <td>@string.Format("{0:C}", cartService.GetTotalPrice())</td>
-                </tr>
-            </tbody>
-        </table>
+            </div>
+        </div>
+
+        @if (_checkoutStage == CheckoutStage.checkout)
+        {
+            <div class="card">
+                <div class="card-body">
+                    <h3>Checkout</h3>
+                    <p>Order total: @string.Format("{0:C}", cartService.GetTotalPrice())</p>
+                    <div class="mb-3">
+                        <label for="email" class="form-label">Email address</label>
+                        <input id="email" />
+                    </div>
+                    <button type="button" @onclick="(() => SubmitOrder())" class=" btn btn-primary">Place Order</button>
+                </div>
+            </div>
+        }
+
+        @if (_checkoutStage == CheckoutStage.complete)
+        {
+            <div class="card">
+                <div class="card-body">
+                    <h3>Thank you for your order!</h3>
+                    <p>Order for @(cartService.Cart?.Customer?.Email ?? "anonymous")</p>
+                    <p>You should recieve your order via email shortly</p>
+                    <p>Order total: @string.Format("{0:C}", cartService.GetTotalPrice())</p>
+                </div>
+            </div>
+        }
     }
+
 </div>
+
+
+
 @code {
-   
+    private enum CheckoutStage { viewCart, checkout, complete, };
+    private CheckoutStage _checkoutStage = CheckoutStage.viewCart;
+	private int _orderId = 0;
+
+    private void Checkout()
+    {
+        _checkoutStage = CheckoutStage.checkout;
+        StateHasChanged();
+    }
+
+    private async Task SubmitOrder()
+    {
+
+        cartService.UpdateCustomer("bradrykenhuizen@gmail.com");
+        _orderId = await checkoutService.Checkout(cartService.Cart);
+
+	    _checkoutStage = CheckoutStage.complete;
+        StateHasChanged();
+
+		cartService.ClearCart();
+    }
 }

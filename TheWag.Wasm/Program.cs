@@ -13,5 +13,6 @@ builder.Services.AddScoped<SessionStorage>();
 builder.Services.AddScoped<CartService>();
 builder.Services.AddScoped<AppSettings>();
 builder.Services.AddScoped<ProductService>();
+builder.Services.AddScoped<CheckoutService>();
 
 await builder.Build().RunAsync();

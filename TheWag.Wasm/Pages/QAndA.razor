@@ -1,0 +1,69 @@
+﻿@page "/qanda"
+
+<PageTitle>Home</PageTitle>
+
+<h3>Q And A</h3>
+
+<h4>General Questions</h4>
+<ul>
+    @foreach (var question in _generalQuestions)
+    {
+        <li>
+            <b>@question.Key</b>
+            <p>@question.Value</p>
+        </li>
+    }
+</ul>
+
+<h4>Technical Questions</h4>
+<ul>
+    @foreach (var question in _techQuestions)
+    {
+        <li>
+            <b>@question.Key</b>
+            <p>@question.Value</p>
+        </li>
+    }
+</ul>
+
+<h4>AI Questions</h4>
+<ul>
+    @foreach (var question in aiQuestions)
+    {
+        <li>
+            <b>@question.Key</b>
+            <p>@question.Value</p>
+        </li>
+    }
+</ul>
+
+@code {
+	private IDictionary<string, string> _generalQuestions = new Dictionary<string, string>
+	{
+		{ "What is The Wag?", "The Wag is a fake EComerce site that pretends to sell dog pictures." },
+		{ "How do I buy a photo?", "You cant, but you can have them for free if you add them to your cart and checkout, no credit card required." },
+		{ "How do I sell a photo?", "You can't acutally 'sell' a photo, becuase the checkout does not have a payment gateway. You can 'sell' a photo by uploading it to our platform on the [Sell] page." },
+	};
+
+	private IDictionary<string, string> _techQuestions = new Dictionary<string, string>
+	{
+		{ "What is the target framework for the TheWag.Wasm project?", "The target framework for the TheWag.Wasm project is .NET 9.0." },
+		{ "What front-end framework is used in this project?", "The project uses Blazor WebAssembly for the front-end." },
+        { "What back-end technology is used?", "The project uses Azure Functions for the back-end." },
+        { "How are images stored in this project?", "Images are stored in Azure Blob Storage." },
+        { "What database technology is used?", "The project uses Entity Framework Core with SQL Server for data storage." },
+        { "How is the project configured for local development?", "The project uses a local.settings.json file for configuration during local development." },
+        { "How much does it cost to host a website this on Azure?", "This site is hosted on Azures Static Web App service that has a free tier that you can attach a custom domain to. The SQL server used is also free for the first 100,000 compute seconds a month and up to 32 gigs of storage. Blob is not free, but at $.02/gig, it is very affordable. The Azure Functions back end is free for 250,000 executions and automatically turns off if it reaches this amount. One of the goals of this project was to keep hosting costs as low as possible resulting in a montly hosting fee of a few pennies a month."}
+    };
+
+    IDictionary<string, string> aiQuestions = new Dictionary<string, string>
+    {
+        { "How does the site use AI?", "The site uses Azure Cognitive Services to analyze uploaded images. The AI determines if the image is a picture of a dog and extracts relevant tags and descriptions." },
+        { "What AI service is used?", "The site uses the Azure Cognitive Services Computer Vision API for image analysis." },
+        { "What information does the AI extract from images?", "The AI extracts a description of the image, tags related to the content of the image, and determines if the image is a picture of a dog." },
+        { "How is the AI integrated into the site?", "The AI is integrated into the site through Azure Functions. When an image is uploaded, an Azure Function calls the Computer Vision API to analyze the image and returns the results to the Blazor WebAssembly front-end." },
+        { "Was AI used to create this site site?", "No, but it helped. GitHub Copilot was used for some code generation and filling in things like this Q and A page." },
+    };
+
+
+}
