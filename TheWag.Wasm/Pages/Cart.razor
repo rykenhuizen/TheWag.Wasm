@@ -42,9 +42,15 @@
                                     <span style="display:inline-block">@item.Product.Description</span>
                                 </td>
                                 <td>
-                                    <img src="images/delete.png" class="icon" @onclick="(() => cartService.DecrementItem(item.Product))" />
+                                    @if (_checkoutStage == CheckoutStage.viewCart)
+                                    {
+                                        <img src="images/delete.png" class="icon" @onclick="(() => cartService.DecrementItem(item.Product))" />
+                                    }
                                     @item.Quantity
-                                    <img src="images/plus.png" class="icon" @onclick="(() => cartService.IncrementItem(item.Product))" />
+                                    @if (_checkoutStage == CheckoutStage.viewCart)
+                                    {
+                                        <img src="images/plus.png" class="icon" @onclick="(() => cartService.IncrementItem(item.Product))" />
+                                    }
                                 </td>
                                 <td>@item.Product.PriceCurrency</td>
                                 <td>@string.Format("{0:C}", item.Quantity * item.Product.Price)</td>
@@ -88,7 +94,7 @@
                 <div class="card-body">
                     <h3>Thank you for your order!</h3>
                     <p>Order for @(cartService.Cart?.Customer?.Email ?? "anonymous")</p>
-                    <p>Order number: @_orderId</p>
+                    <p>You should recieve your order via email shortly</p>
                     <p>Order total: @string.Format("{0:C}", cartService.GetTotalPrice())</p>
                 </div>
             </div>
@@ -107,6 +113,7 @@
     private void Checkout()
     {
         _checkoutStage = CheckoutStage.checkout;
+        StateHasChanged();
     }
 
     private async Task SubmitOrder()
@@ -118,5 +125,6 @@
         //email user pics
 
 	    _checkoutStage = CheckoutStage.complete;
+        StateHasChanged();
     }
 }
