@@ -1,5 +1,7 @@
-﻿
-namespace TheWag.Api.WagDB.EF;
+﻿using System;
+using System.Collections.Generic;
+
+namespace TheWag.Functions.EF;
 
 public partial class Customer
 {
@@ -11,5 +13,5 @@ public partial class Customer
 
     public string Email { get; set; } = null!;
 
-    public virtual Order? Order { get; set; }
+    public virtual ICollection<Order> Orders { get; set; } = new List<Order>();
 }

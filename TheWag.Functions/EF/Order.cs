@@ -1,8 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
-using TheWag.Api.WagDB.EF;
 
-namespace TheWag.Api.WagDB.EF;
+namespace TheWag.Functions.EF;
 
 public partial class Order
 {
@@ -12,7 +11,9 @@ public partial class Order
 
     public int FkCustomerId { get; set; }
 
-    public virtual Customer IdNavigation { get; set; } = null!;
+    public decimal? Total { get; set; }
+
+    public virtual Customer FkCustomer { get; set; } = null!;
 
     public virtual ICollection<OrderDetail> OrderDetails { get; set; } = new List<OrderDetail>();
 }

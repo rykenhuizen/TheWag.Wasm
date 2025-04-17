@@ -14,6 +14,7 @@ builder.Services.AddScoped<SessionStorage>();
 builder.Services.AddScoped<CartService>();
 builder.Services.AddScoped<AppSettings>();
 builder.Services.AddScoped<ProductService>();
+builder.Services.AddScoped<CheckoutService>();
 
 //set up with fake currency symbol Biscuts
 var customCulture = (System.Globalization.CultureInfo)System.Globalization.CultureInfo.InvariantCulture.Clone();

@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace TheWag.Api.WagDB.EF;
+namespace TheWag.Functions.EF;
 
 public partial class Tag
 {
