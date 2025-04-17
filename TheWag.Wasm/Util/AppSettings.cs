@@ -9,19 +9,26 @@
         public string TempContainerName { get; private set; }
         public string CartSessionKey { get; private set; }
 
-        public AppSettings(IConfiguration configuration)
+        public AppSettings(IConfiguration configuration, ILogger<AppSettings> logger)
         {
-            if (configuration == null)
+            ArgumentNullException.ThrowIfNull(logger);
+            try
             {
-                throw new ArgumentNullException(nameof(configuration));
+                ArgumentNullException.ThrowIfNull(configuration);
+          
+                BlobHostUrl = configuration["BlobHostUrl"] ?? throw new KeyNotFoundException(nameof(BlobHostUrl));
+                FunctionHostUrl = configuration["FunctionHostUrl"] ?? throw new KeyNotFoundException(nameof(FunctionHostUrl));
+                ValidContainerName = configuration["ValidContainer"] ?? throw new KeyNotFoundException(nameof(ValidContainerName));
+                InvalidContainerName = configuration["InvalidContainer"] ?? throw new KeyNotFoundException(nameof(InvalidContainerName));
+                TempContainerName = configuration["TempContainer"] ?? throw new KeyNotFoundException(nameof(TempContainerName));
+                CartSessionKey = configuration["CartSessionKey"] ?? throw new KeyNotFoundException(nameof(CartSessionKey));
             }
-
-            BlobHostUrl = configuration["BlobHostUrl"] ?? throw new ArgumentNullException(nameof(BlobHostUrl));
-            FunctionHostUrl = configuration["FunctionHostUrl"] ?? throw new ArgumentNullException(nameof(FunctionHostUrl));
-            ValidContainerName = configuration["ValidContainer"] ?? throw new ArgumentNullException(nameof(ValidContainerName));
-            InvalidContainerName = configuration["InvalidContainer"] ?? throw new ArgumentNullException(nameof(InvalidContainerName));
-            TempContainerName = configuration["TempContainer"] ?? throw new ArgumentNullException(nameof(TempContainerName));
-            CartSessionKey = configuration["CartSessionKey"] ?? throw new ArgumentNullException(nameof(CartSessionKey));
+            catch (KeyNotFoundException ex)
+            {
+                logger.LogError(ex, "Configuration is null");
+                throw;
+            }
         }
+  
     }
 }
