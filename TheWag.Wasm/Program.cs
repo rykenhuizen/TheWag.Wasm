@@ -4,6 +4,7 @@ using TheWag.Wasm;
 using TheWag.Wasm.Services;
 using TheWag.Wasm.Util;
 using System.Globalization;
+using BlazorApplicationInsights;
 
 var builder = WebAssemblyHostBuilder.CreateDefault(args);
 builder.RootComponents.Add<App>("#app");
@@ -21,5 +22,6 @@ var customCulture = (System.Globalization.CultureInfo)System.Globalization.Cultu
 customCulture.NumberFormat.CurrencySymbol = "฿$₭৳";
 CultureInfo.DefaultThreadCurrentCulture = customCulture;
 
+builder.Services.AddBlazorApplicationInsights();
 
 await builder.Build().RunAsync();
