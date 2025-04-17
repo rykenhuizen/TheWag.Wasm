@@ -3,6 +3,8 @@
 @using TheWag.Models;
 @using TheWag.Wasm.Util;
 @using TheWag.Wasm.Services;
+@using BlazorApplicationInsights.Interfaces;
+@using BlazorApplicationInsights.Models;
 
 @inject CartService cartService
 @inject AppSettings appSettings
@@ -106,12 +108,15 @@
 
 
 @code {
+
+    [Inject] private IApplicationInsights AppInsights { get; set; }
     private enum CheckoutStage { viewCart, checkout, complete, };
     private CheckoutStage _checkoutStage = CheckoutStage.viewCart;
 	private int _orderId = 0;
 
-    private void Checkout()
+    private async void Checkout()
     {
+        await AppInsights.TrackEvent(new EventTelemetry() { Name = "Checkout clicked" });
         _checkoutStage = CheckoutStage.checkout;
         StateHasChanged();
     }
